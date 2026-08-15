@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --primary: #ff6b35;          /* 小熊油耗主题橙色 */
+            --primary: #ff6b35;
             --primary-light: #fff0ea;
             --primary-dark: #e55a2b;
             --success: #4caf50;
@@ -34,7 +34,6 @@
         }
         .container { max-width: 720px; margin: 0 auto; padding: 12px; }
 
-        /* 顶部 */
         .header {
             background: linear-gradient(135deg, #ff6b35, #ff8f5e);
             border-radius: 0 0 24px 24px;
@@ -47,7 +46,6 @@
         .header h1 { font-size: 1.6rem; font-weight: 700; }
         .header p { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
 
-        /* 统计卡片 */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -71,7 +69,6 @@
         .stat-card .stat-label { font-size: 0.78rem; color: var(--text-light); }
         .stat-card.small .stat-value { font-size: 1.3rem; }
 
-        /* 卡片 */
         .card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -95,7 +92,6 @@
             border-radius: 2px;
         }
 
-        /* 表单 */
         .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
         .form-group { flex: 1; min-width: 140px; }
         .form-group label { display: block; font-size: 0.8rem; color: var(--text-light); margin-bottom: 4px; }
@@ -147,7 +143,6 @@
         .btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
         .btn-sm { padding: 8px 14px; font-size: 0.85rem; border-radius: 8px; }
 
-        /* 表格 */
         .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 650px; }
         th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border); }
@@ -164,10 +159,8 @@
         .badge-full { background: #e8f5e9; color: #2e7d32; }
         .badge-notfull { background: #fff3e0; color: #e65100; }
 
-        /* 图表 */
         .chart-container { position: relative; height: 260px; margin-bottom: 16px; }
 
-        /* 底部操作 */
         .footer-actions {
             display: flex;
             flex-wrap: wrap;
@@ -176,7 +169,6 @@
             margin-top: 10px;
         }
 
-        /* Toast */
         .toast {
             position: fixed;
             top: 20px;
@@ -195,7 +187,6 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* 响应式 */
         @media (max-width: 480px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .form-group { min-width: 100%; }
@@ -205,13 +196,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- 顶部标题 -->
         <div class="header">
             <h1>⛽ 小熊油耗 · 个人版</h1>
             <p>专注个人油耗记录与统计</p>
         </div>
 
-        <!-- 统计卡片 -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value" id="totalDistance">0</div>
@@ -239,7 +228,6 @@
             </div>
         </div>
 
-        <!-- 添加/编辑表单 -->
         <div class="card" id="formCard">
             <h2 id="formTitle">添加加油记录</h2>
             <form id="recordForm">
@@ -279,7 +267,6 @@
             </form>
         </div>
 
-        <!-- 加油记录表格 -->
         <div class="card">
             <h2>加油记录</h2>
             <div class="table-wrapper">
@@ -302,7 +289,6 @@
             </div>
         </div>
 
-        <!-- 图表 -->
         <div class="card">
             <h2>油耗趋势（仅加满记录）</h2>
             <div class="chart-container"><canvas id="trendChart"></canvas></div>
@@ -312,7 +298,6 @@
             <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
         </div>
 
-        <!-- 底部按钮 -->
         <div class="footer-actions">
             <button class="btn btn-success" onclick="exportCSV()">导出 CSV</button>
             <button class="btn btn-success" onclick="exportJSON()">导出 JSON</button>
@@ -325,7 +310,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // ========== 配置区 ==========
+        // ========== 配置区（请替换为你自己的 Supabase 信息） ==========
         const SUPABASE_URL = 'https://pzdhznfhfeklwjjcqetl.supabase.co/rest/v1/';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZGh6bmZoZmVrbHdqamNxZXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3NDU3MTMsImV4cCI6MjEwMjMyMTcxM30.eOckFFY6HD38MFqf4wKMHQJunjp_XG8SZnu6-10GKyk';
 
@@ -338,9 +323,13 @@
 
         // ========== Supabase 初始化 ==========
         function initSupabase() {
-            if (SUPABASE_URL.includes('你的项目')) return;
+            if (SUPABASE_URL.includes('你的项目')) {
+                console.warn('未配置 Supabase，使用本地存储模式');
+                return;
+            }
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             isCloudMode = true;
+            // 实时监听（可选）
             supabase.channel('fuel-changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'fuel_records' }, () => {
                     fetchRecordsFromCloud();
@@ -350,19 +339,30 @@
 
         async function fetchRecordsFromCloud() {
             if (!isCloudMode || !supabase) return;
-            const { data, error } = await supabase.from('fuel_records').select('*');
-            if (error) { showToast('云端读取失败'); return; }
-            records = data.map(r => ({
-                id: r.id,
-                date: r.date,
-                liters: parseFloat(r.liters),
-                pricePerLiter: parseFloat(r.price_per_liter),
-                totalCost: parseFloat(r.total_cost),
-                odometer: parseFloat(r.odometer),
-                note: r.note || '',
-                isFull: r.is_full === null ? true : r.is_full
-            }));
-            renderAll();
+            try {
+                const { data, error } = await supabase.from('fuel_records').select('*');
+                if (error) throw error;
+                records = data.map(r => ({
+                    id: r.id,
+                    date: r.date,
+                    liters: parseFloat(r.liters),
+                    pricePerLiter: parseFloat(r.price_per_liter),
+                    totalCost: parseFloat(r.total_cost),
+                    odometer: parseFloat(r.odometer),
+                    note: r.note || '',
+                    isFull: r.is_full === null ? true : r.is_full
+                }));
+                renderAll();
+            } catch (err) {
+                console.error('云端读取失败，回退本地数据', err);
+                // 如果云端读取失败，尝试使用本地存储
+                const stored = localStorage.getItem('fuelRecords');
+                if (stored) {
+                    records = JSON.parse(stored);
+                    records = records.map(r => ({ ...r, isFull: r.isFull === undefined ? true : r.isFull }));
+                    renderAll();
+                }
+            }
         }
 
         async function syncRecordToCloud(record, action) {
@@ -377,22 +377,37 @@
                 note: record.note || null,
                 is_full: record.isFull
             };
-            if (action === 'insert' || action === 'update') {
-                await supabase.from('fuel_records').upsert(dbRecord, { onConflict: 'id' });
-            } else if (action === 'delete') {
-                await supabase.from('fuel_records').delete().match({ id: record.id });
+            try {
+                if (action === 'insert' || action === 'update') {
+                    const { error } = await supabase.from('fuel_records').upsert(dbRecord, { onConflict: 'id' });
+                    if (error) throw error;
+                } else if (action === 'delete') {
+                    const { error } = await supabase.from('fuel_records').delete().match({ id: record.id });
+                    if (error) throw error;
+                }
+            } catch (err) {
+                console.error('云端同步失败:', err);
+                throw err; // 抛出以便外部 .catch 处理
             }
         }
 
         async function syncAllToCloud() {
             if (!isCloudMode || !supabase) return;
-            await supabase.from('fuel_records').delete().neq('id', '');
-            const dbRecords = records.map(r => ({
-                id: r.id, date: r.date, liters: r.liters,
-                price_per_liter: r.pricePerLiter, total_cost: r.totalCost,
-                odometer: r.odometer, note: r.note || null, is_full: r.isFull
-            }));
-            await supabase.from('fuel_records').insert(dbRecords);
+            try {
+                await supabase.from('fuel_records').delete().neq('id', '');
+                const dbRecords = records.map(r => ({
+                    id: r.id, date: r.date, liters: r.liters,
+                    price_per_liter: r.pricePerLiter, total_cost: r.totalCost,
+                    odometer: r.odometer, note: r.note || null, is_full: r.isFull
+                }));
+                if (dbRecords.length > 0) {
+                    const { error } = await supabase.from('fuel_records').insert(dbRecords);
+                    if (error) throw error;
+                }
+            } catch (err) {
+                console.error('云端批量同步失败:', err);
+                throw err;
+            }
         }
 
         // ========== 计算逻辑 ==========
@@ -400,7 +415,6 @@
             return [...records].sort((a, b) => a.odometer - b.odometer);
         }
 
-        // 计算单次油耗，仅当本条和上一条都加满时计算
         function calculateMetrics() {
             const sorted = getSortedByOdometer();
             return sorted.map((rec, i) => {
@@ -432,7 +446,6 @@
             const totalDistance = sorted[sorted.length-1].odometer - sorted[0].odometer;
             const avgPrice = totalLiters > 0 ? totalCost / totalLiters : 0;
 
-            // 使用加满记录计算平均油耗（更准确）
             const fullRecords = sorted.filter(r => r.isFull);
             let avgConsumption = 0;
             if (fullRecords.length >= 2) {
@@ -440,11 +453,9 @@
                 const fullLiters = fullRecords.reduce((s,r) => s + r.liters, 0);
                 avgConsumption = fullDistance > 0 ? (fullLiters / fullDistance) * 100 : 0;
             } else if (totalDistance > 0) {
-                // 加满记录不足，退回使用全部数据
                 avgConsumption = (totalLiters / totalDistance) * 100;
             }
 
-            // 最低/最高油耗（仅加满记录）
             const validConsumptions = calculateMetrics().filter(r => r.consumption !== null).map(r => r.consumption);
             const minConsumption = validConsumptions.length > 0 ? Math.min(...validConsumptions) : null;
             const maxConsumption = validConsumptions.length > 0 ? Math.max(...validConsumptions) : null;
@@ -454,9 +465,13 @@
 
         // ========== 渲染 ==========
         function renderAll() {
-            renderStats();
-            renderTable();
-            renderCharts();
+            try {
+                renderStats();
+                renderTable();
+                renderCharts();
+            } catch (err) {
+                console.error('渲染出错:', err);
+            }
         }
 
         function renderStats() {
@@ -504,7 +519,6 @@
             const valid = calculated.filter(r => r.consumption !== null);
             const recent = valid.slice(-10);
 
-            // 油耗趋势
             const trendCtx = document.getElementById('trendChart').getContext('2d');
             if (trendChartInstance) trendChartInstance.destroy();
             trendChartInstance = new Chart(trendCtx, {
@@ -529,7 +543,6 @@
                 }
             });
 
-            // 月度油费
             const monthlyData = {};
             records.forEach(r => {
                 const month = r.date.substring(0,7);
@@ -570,7 +583,7 @@
             document.getElementById('date').valueAsDate = new Date();
         }
 
-        document.getElementById('recordForm').addEventListener('submit', async function(e) {
+        document.getElementById('recordForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const id = document.getElementById('recordId').value;
             const date = document.getElementById('date').value;
@@ -613,17 +626,24 @@
                 date, liters, pricePerLiter, totalCost, odometer, note, isFull
             };
 
+            // 先更新本地数据并渲染
             if (id) {
-                records[records.findIndex(r => r.id === id)] = record;
-                await syncRecordToCloud(record, 'update');
+                const index = records.findIndex(r => r.id === id);
+                records[index] = record;
                 showToast('记录已更新');
             } else {
                 records.push(record);
-                await syncRecordToCloud(record, 'insert');
                 showToast('记录已添加');
             }
             renderAll();
             resetForm();
+
+            // 异步同步云端，不阻塞，失败仅提示
+            const action = id ? 'update' : 'insert';
+            syncRecordToCloud(record, action).catch(err => {
+                console.error('云端同步失败:', err);
+                showToast('云端同步失败，本地已保存');
+            });
         });
 
         document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
@@ -644,14 +664,18 @@
             document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
         }
 
-        async function deleteRecord(id) {
+        function deleteRecord(id) {
             if (!confirm('确定删除这条记录吗？')) return;
             const rec = records.find(r => r.id === id);
+            if (!rec) return;
             records = records.filter(r => r.id !== id);
-            if (rec) await syncRecordToCloud(rec, 'delete');
             renderAll();
             if (document.getElementById('recordId').value === id) resetForm();
             showToast('记录已删除');
+            syncRecordToCloud(rec, 'delete').catch(err => {
+                console.error('云端删除失败:', err);
+                showToast('云端同步失败，本地已删除');
+            });
         }
 
         // ========== 导入导出 ==========
@@ -680,11 +704,11 @@
             showToast('JSON 导出成功');
         }
 
-        async function importJSON(event) {
+        function importJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!Array.isArray(data)) throw new Error('格式错误');
@@ -695,9 +719,13 @@
                         id: r.id || Date.now().toString(36) + Math.random().toString(36).substr(2,6),
                         isFull: r.isFull === undefined ? true : r.isFull
                     }));
-                    await syncAllToCloud();
                     renderAll();
                     showToast('导入成功');
+                    // 异步同步全部数据
+                    syncAllToCloud().catch(err => {
+                        console.error('云端批量同步失败:', err);
+                        showToast('云端同步失败，本地已保存');
+                    });
                 } catch (err) {
                     showToast('导入失败：' + err.message);
                 }
@@ -706,13 +734,16 @@
             event.target.value = '';
         }
 
-        async function clearAllData() {
+        function clearAllData() {
             if (!confirm('确定清空所有数据吗？此操作不可恢复！')) return;
             records = [];
-            await syncAllToCloud();
             renderAll();
             resetForm();
             showToast('已清空所有数据');
+            syncAllToCloud().catch(err => {
+                console.error('云端清空失败:', err);
+                showToast('云端同步失败，本地已清空');
+            });
         }
 
         function showToast(msg) {
@@ -733,7 +764,6 @@
                 const stored = localStorage.getItem('fuelRecords');
                 if (stored) {
                     records = JSON.parse(stored);
-                    // 兼容旧数据：添加 isFull 字段
                     records = records.map(r => ({ ...r, isFull: r.isFull === undefined ? true : r.isFull }));
                 } else {
                     // 首次使用，添加示例数据
@@ -746,6 +776,7 @@
                 }
                 renderAll();
             }
+            // 本地模式下，页面关闭前保存
             window.addEventListener('beforeunload', () => {
                 if (!isCloudMode) localStorage.setItem('fuelRecords', JSON.stringify(records));
             });
