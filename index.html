@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小熊油耗 · 个人版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #ff6b35;
+            --primary-light: #fff0ea;
+            --primary-dark: #e55a2b;
+            --success: #4caf50;
+            --danger: #f44336;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #e9ecef;
+            --radius: 16px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+        .container { max-width: 720px; margin: 0 auto; padding: 12px; }
+        .header {
+            background: linear-gradient(135deg, #ff6b35, #ff8f5e);
+            border-radius: 0 0 24px 24px;
+            padding: 28px 16px 20px;
+            margin: -12px -12px 16px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255,107,53,0.3);
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 700; }
+        .header p { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 6px 0;
+            letter-spacing: -0.5px;
+        }
+        .stat-card .stat-label { font-size: 0.78rem; color: var(--text-light); }
+        .stat-card.small .stat-value { font-size: 1.3rem; }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+        }
+        .card h2 {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+        .form-group { flex: 1; min-width: 140px; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--text-light); margin-bottom: 4px; }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            background: #fafbfc;
+            transition: border 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+        .checkbox-group label { font-size: 0.9rem; color: var(--text); }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-right: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 3px 10px rgba(255,107,53,0.3); }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
+        .btn-sm { padding: 8px 14px; font-size: 0.85rem; border-radius: 8px; }
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 650px; }
+        th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; white-space: nowrap; }
+        td { white-space: nowrap; }
+        .action-btns { display: flex; gap: 6px; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-full { background: #e8f5e9; color: #2e7d32; }
+        .badge-notfull { background: #fff3e0; color: #e65100; }
+        .chart-container { position: relative; height: 260px; margin-bottom: 16px; }
+        .footer-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .form-group { min-width: 100%; }
+            .btn { flex: 1; margin-right: 6px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⛽ 小熊油耗 · 个人版</h1>
+            <p>专注个人油耗记录与统计</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalDistance">0</div>
+                <div class="stat-label">总行驶里程 (km)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalCost">0</div>
+                <div class="stat-label">总油费 (元)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgConsumption">0</div>
+                <div class="stat-label">平均油耗 (L/100km)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgPrice">0</div>
+                <div class="stat-label">平均油价 (元/L)</div>
+            </div>
+            <div class="stat-card small">
+                <div class="stat-value" id="minConsumption">—</div>
+                <div class="stat-label">最低油耗</div>
+            </div>
+            <div class="stat-card small">
+                <div class="stat-value" id="maxConsumption">—</div>
+                <div class="stat-label">最高油耗</div>
+            </div>
+        </div>
+
+        <div class="card" id="formCard">
+            <h2 id="formTitle">添加加油记录</h2>
+            <form id="recordForm">
+                <input type="hidden" id="recordId" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>加油日期 *</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>加油量 (升) *</label>
+                        <input type="number" id="liters" step="0.01" min="0.01" required placeholder="如 40.00">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>油价 (元/升) *</label>
+                        <input type="number" id="pricePerLiter" step="0.01" min="0.01" required placeholder="如 7.80">
+                    </div>
+                    <div class="form-group">
+                        <label>里程表读数 (km) *</label>
+                        <input type="number" id="odometer" step="0.1" min="0.1" required placeholder="必须大于上一条">
+                    </div>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="isFull" checked>
+                    <label for="isFull">本次加油是否加满（跳枪）</label>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>备注 / 加油站</label>
+                    <input type="text" id="note" placeholder="可选">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">添加记录</button>
+                    <button type="button" class="btn btn-outline" id="cancelEditBtn" style="display:none;">取消</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>加油记录</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>加油量(L)</th>
+                            <th>油价</th>
+                            <th>总金额</th>
+                            <th>里程表</th>
+                            <th>油耗</th>
+                            <th>每公里</th>
+                            <th>加满</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>油耗趋势（仅加满记录）</h2>
+            <div class="chart-container"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="card">
+            <h2>月度油费统计</h2>
+            <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+        </div>
+
+        <div class="footer-actions">
+            <button class="btn btn-success" onclick="exportCSV()">导出 CSV</button>
+            <button class="btn btn-success" onclick="exportJSON()">导出 JSON</button>
+            <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">导入</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSON(event)">
+            <button class="btn btn-danger" onclick="clearAllData()">清空</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://pzdhznfhfeklwjjcqetl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6ZGh6bmZoZmVrbHdqamNxZXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY3NDU3MTMsImV4cCI6MjEwMjMyMTcxM30.eOckFFY6HD38MFqf4wKMHQJunjp_XG8SZnu6-10GKyk';
+
+        let records = [];
+        let supabaseClient = null;
+        let isCloudMode = false;
+        let trendChartInstance = null;
+        let monthlyChartInstance = null;
+
+        function initSupabase() {
+            if (SUPABASE_URL.includes('你的项目')) {
+                console.warn('未配置 Supabase');
+                return;
+            }
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            isCloudMode = true;
+            supabaseClient.channel('fuel-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'fuel_records' }, () => {
+                    fetchRecordsFromCloud();
+                })
+                .subscribe();
+        }
+
+        async function fetchRecordsFromCloud() {
+            if (!isCloudMode || !supabaseClient) return;
+            try {
+                const { data, error } = await supabaseClient.from('fuel_records').select('*');
+                if (error) throw error;
+                records = data.map(r => ({
+                    id: r.id,
+                    date: r.date,
+                    liters: parseFloat(r.liters),
+                    pricePerLiter: parseFloat(r.price_per_liter),
+                    totalCost: parseFloat(r.total_cost),
+                    odometer: parseFloat(r.odometer),
+                    note: r.note || '',
+                    isFull: r.is_full === null ? true : r.is_full
+                }));
+                renderAll();
+            } catch (err) {
+                console.error('云端读取失败', err);
+                const stored = localStorage.getItem('fuelRecords');
+                if (stored) {
+                    records = JSON.parse(stored);
+                    records = records.map(r => ({ ...r, isFull: r.isFull === undefined ? true : r.isFull }));
+                    renderAll();
+                }
+            }
+        }
+
+        async function syncRecordToCloud(record, action) {
+            if (!isCloudMode || !supabaseClient) return;
+            const dbRecord = {
+                id: record.id,
+                date: record.date,
+                liters: record.liters,
+                price_per_liter: record.pricePerLiter,
+                total_cost: record.totalCost,
+                odometer: record.odometer,
+                note: record.note || null,
+                is_full: record.isFull
+            };
+            try {
+                if (action === 'insert' || action === 'update') {
+                    const { error } = await supabaseClient.from('fuel_records').upsert(dbRecord, { onConflict: 'id' });
+                    if (error) throw error;
+                } else if (action === 'delete') {
+                    const { error } = await supabaseClient.from('fuel_records').delete().match({ id: record.id });
+                    if (error) throw error;
+                }
+            } catch (err) {
+                console.error('云端同步失败:', err);
+                throw err;
+            }
+        }
+
+        async function syncAllToCloud() {
+            if (!isCloudMode || !supabaseClient) return;
+            try {
+                await supabaseClient.from('fuel_records').delete().neq('id', '');
+                const dbRecords = records.map(r => ({
+                    id: r.id, date: r.date, liters: r.liters,
+                    price_per_liter: r.pricePerLiter, total_cost: r.totalCost,
+                    odometer: r.odometer, note: r.note || null, is_full: r.isFull
+                }));
+                if (dbRecords.length > 0) {
+                    const { error } = await supabaseClient.from('fuel_records').insert(dbRecords);
+                    if (error) throw error;
+                }
+            } catch (err) {
+                console.error('云端批量同步失败:', err);
+                throw err;
+            }
+        }
+
+        function getSortedByOdometer() {
+            return [...records].sort((a, b) => a.odometer - b.odometer);
+        }
+
+        function calculateMetrics() {
+            const sorted = getSortedByOdometer();
+            return sorted.map((rec, i) => {
+                const copy = { ...rec };
+                if (i === 0 || !rec.isFull || !sorted[i-1].isFull) {
+                    copy.distance = null;
+                    copy.consumption = null;
+                    copy.costPerKm = null;
+                } else {
+                    const prev = sorted[i-1];
+                    copy.distance = rec.odometer - prev.odometer;
+                    if (copy.distance > 0) {
+                        copy.consumption = (rec.liters / copy.distance) * 100;
+                        copy.costPerKm = rec.totalCost / copy.distance;
+                    } else {
+                        copy.consumption = null;
+                        copy.costPerKm = null;
+                    }
+                }
+                return copy;
+            });
+        }
+
+        function getStatistics() {
+            const sorted = getSortedByOdometer();
+            if (sorted.length === 0) return { totalDistance:0, totalLiters:0, totalCost:0, avgConsumption:0, avgPrice:0, minConsumption:null, maxConsumption:null };
+            const totalLiters = records.reduce((s,r) => s + r.liters, 0);
+            const totalCost = records.reduce((s,r) => s + r.totalCost, 0);
+            const totalDistance = sorted[sorted.length-1].odometer - sorted[0].odometer;
+            const avgPrice = totalLiters > 0 ? totalCost / totalLiters : 0;
+            const fullRecords = sorted.filter(r => r.isFull);
+            let avgConsumption = 0;
+            if (fullRecords.length >= 2) {
+                const fullDistance = fullRecords[fullRecords.length-1].odometer - fullRecords[0].odometer;
+                const fullLiters = fullRecords.reduce((s,r) => s + r.liters, 0);
+                avgConsumption = fullDistance > 0 ? (fullLiters / fullDistance) * 100 : 0;
+            } else if (totalDistance > 0) {
+                avgConsumption = (totalLiters / totalDistance) * 100;
+            }
+            const validConsumptions = calculateMetrics().filter(r => r.consumption !== null).map(r => r.consumption);
+            const minConsumption = validConsumptions.length > 0 ? Math.min(...validConsumptions) : null;
+            const maxConsumption = validConsumptions.length > 0 ? Math.max(...validConsumptions) : null;
+            return { totalDistance, totalLiters, totalCost, avgConsumption, avgPrice, minConsumption, maxConsumption };
+        }
+
+        function renderAll() {
+            try {
+                renderStats();
+                renderTable();
+                renderCharts();
+            } catch (err) {
+                console.error('渲染出错:', err);
+            }
+        }
+
+        function renderStats() {
+            const s = getStatistics();
+            document.getElementById('totalDistance').textContent = s.totalDistance.toFixed(1);
+            document.getElementById('totalCost').textContent = s.totalCost.toFixed(2);
+            document.getElementById('avgConsumption').textContent = s.avgConsumption.toFixed(2);
+            document.getElementById('avgPrice').textContent = s.avgPrice.toFixed(2);
+            document.getElementById('minConsumption').textContent = s.minConsumption !== null ? s.minConsumption.toFixed(2) : '—';
+            document.getElementById('maxConsumption').textContent = s.maxConsumption !== null ? s.maxConsumption.toFixed(2) : '—';
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('recordsTableBody');
+            const display = [...calculateMetrics()].reverse();
+            if (display.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">暂无记录，请添加</td></tr>';
+                return;
+            }
+            let html = '';
+            display.forEach(r => {
+                const fullBadge = r.isFull ? '<span class="badge badge-full">已加满</span>' : '<span class="badge badge-notfull">未加满</span>';
+                html += `<tr>
+                    <td>${r.date}</td>
+                    <td>${r.liters.toFixed(2)}</td>
+                    <td>${r.pricePerLiter.toFixed(2)}</td>
+                    <td>${r.totalCost.toFixed(2)}</td>
+                    <td>${r.odometer.toFixed(1)}</td>
+                    <td>${r.consumption !== null ? r.consumption.toFixed(2) : '—'}</td>
+                    <td>${r.costPerKm !== null ? r.costPerKm.toFixed(3) : '—'}</td>
+                    <td>${fullBadge}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-primary btn-sm" onclick="editRecord('${r.id}')">编辑</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">删除</button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function renderCharts() {
+            const calculated = calculateMetrics();
+            const valid = calculated.filter(r => r.consumption !== null);
+            const recent = valid.slice(-10);
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            if (trendChartInstance) trendChartInstance.destroy();
+            trendChartInstance = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: recent.map(r => r.date),
+                    datasets: [{
+                        label: '百公里油耗 (L/100km)',
+                        data: recent.map(r => r.consumption),
+                        borderColor: '#ff6b35',
+                        backgroundColor: 'rgba(255,107,53,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#ff6b35'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } } }
+            });
+            const monthlyData = {};
+            records.forEach(r => {
+                const month = r.date.substring(0,7);
+                monthlyData[month] = (monthlyData[month] || 0) + r.totalCost;
+            });
+            const monthLabels = Object.keys(monthlyData).sort();
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            if (monthlyChartInstance) monthlyChartInstance.destroy();
+            monthlyChartInstance = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{
+                        label: '月度油费 (元)',
+                        data: monthLabels.map(m => monthlyData[m]),
+                        backgroundColor: 'rgba(255,107,53,0.7)',
+                        borderColor: '#ff6b35',
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } } }
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('recordForm').reset();
+            document.getElementById('recordId').value = '';
+            document.getElementById('formTitle').textContent = '添加加油记录';
+            document.getElementById('submitBtn').textContent = '添加记录';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.getElementById('isFull').checked = true;
+            document.getElementById('date').valueAsDate = new Date();
+        }
+
+        document.getElementById('recordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = document.getElementById('recordId').value;
+            const date = document.getElementById('date').value;
+            const liters = parseFloat(document.getElementById('liters').value);
+            const pricePerLiter = parseFloat(document.getElementById('pricePerLiter').value);
+            const odometer = parseFloat(document.getElementById('odometer').value);
+            const note = document.getElementById('note').value.trim();
+            const isFull = document.getElementById('isFull').checked;
+            if (!date || isNaN(liters) || liters<=0 || isNaN(pricePerLiter) || pricePerLiter<=0 || isNaN(odometer) || odometer<=0) {
+                showToast('请填写正确的正数数据');
+                return;
+            }
+            const totalCost = liters * pricePerLiter;
+            const sorted = getSortedByOdometer();
+            if (id) {
+                const currentIndex = records.findIndex(r => r.id === id);
+                if (currentIndex === -1) return;
+                const temp = records.filter(r => r.id !== id);
+                temp.push({ ...records[currentIndex], odometer });
+                const tempSorted = temp.sort((a,b) => a.odometer - b.odometer);
+                for (let i=1; i<tempSorted.length; i++) {
+                    if (tempSorted[i].odometer <= tempSorted[i-1].odometer) {
+                        showToast('里程表读数必须严格大于其他记录');
+                        return;
+                    }
+                }
+            } else {
+                if (sorted.length > 0 && odometer <= sorted[sorted.length-1].odometer) {
+                    showToast('里程表读数必须大于上一条记录的里程数');
+                    return;
+                }
+            }
+            const record = {
+                id: id || Date.now().toString(36) + Math.random().toString(36).substr(2,6),
+                date, liters, pricePerLiter, totalCost, odometer, note, isFull
+            };
+            if (id) {
+                const index = records.findIndex(r => r.id === id);
+                records[index] = record;
+                showToast('记录已更新');
+            } else {
+                records.push(record);
+                showToast('记录已添加');
+            }
+            renderAll();
+            resetForm();
+            const action = id ? 'update' : 'insert';
+            syncRecordToCloud(record, action).catch(err => {
+                console.error('云端同步失败:', err);
+                showToast('云端同步失败，本地已保存');
+            });
+        });
+
+        document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+
+        function editRecord(id) {
+            const rec = records.find(r => r.id === id);
+            if (!rec) return;
+            document.getElementById('recordId').value = rec.id;
+            document.getElementById('date').value = rec.date;
+            document.getElementById('liters').value = rec.liters;
+            document.getElementById('pricePerLiter').value = rec.pricePerLiter;
+            document.getElementById('odometer').value = rec.odometer;
+            document.getElementById('note').value = rec.note || '';
+            document.getElementById('isFull').checked = rec.isFull;
+            document.getElementById('formTitle').textContent = '编辑加油记录';
+            document.getElementById('submitBtn').textContent = '保存修改';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+            document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteRecord(id) {
+            if (!confirm('确定删除这条记录吗？')) return;
+            const rec = records.find(r => r.id === id);
+            if (!rec) return;
+            records = records.filter(r => r.id !== id);
+            renderAll();
+            if (document.getElementById('recordId').value === id) resetForm();
+            showToast('记录已删除');
+            syncRecordToCloud(rec, 'delete').catch(err => {
+                console.error('云端删除失败:', err);
+                showToast('云端同步失败，本地已删除');
+            });
+        }
+
+        function exportCSV() {
+            if (records.length === 0) { showToast('没有数据可导出'); return; }
+            const headers = ['日期','加油量(L)','油价(元/L)','总金额(元)','里程表(km)','是否加满','备注'];
+            const rows = records.map(r => [r.date, r.liters, r.pricePerLiter, r.totalCost, r.odometer, r.isFull ? '是':'否', r.note || '']);
+            const csv = '\uFEFF' + headers.join(',') + '\n' + rows.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = '油耗记录.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('CSV 导出成功');
+        }
+
+        function exportJSON() {
+            if (records.length === 0) { showToast('没有数据可导出'); return; }
+            const blob = new Blob([JSON.stringify(records, null, 2)], { type:'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = '油耗记录.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('JSON 导出成功');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data)) throw new Error('格式错误');
+                    const valid = data.every(r => r.date && typeof r.liters === 'number' && typeof r.pricePerLiter === 'number' && typeof r.totalCost === 'number' && typeof r.odometer === 'number');
+                    if (!valid) throw new Error('数据字段不完整');
+                    records = data.map(r => ({
+                        ...r,
+                        id: r.id || Date.now().toString(36) + Math.random().toString(36).substr(2,6),
+                        isFull: r.isFull === undefined ? true : r.isFull
+                    }));
+                    renderAll();
+                    showToast('导入成功');
+                    syncAllToCloud().catch(err => {
+                        console.error('云端批量同步失败:', err);
+                        showToast('云端同步失败，本地已保存');
+                    });
+                } catch (err) {
+                    showToast('导入失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function clearAllData() {
+            if (!confirm('确定清空所有数据吗？此操作不可恢复！')) return;
+            records = [];
+            renderAll();
+            resetForm();
+            showToast('已清空所有数据');
+            syncAllToCloud().catch(err => {
+                console.error('云端清空失败:', err);
+                showToast('云端同步失败，本地已清空');
+            });
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        async function init() {
+            document.getElementById('date').valueAsDate = new Date();
+            initSupabase();
+            if (isCloudMode) {
+                await fetchRecordsFromCloud();
+            } else {
+                const stored = localStorage.getItem('fuelRecords');
+                if (stored) {
+                    records = JSON.parse(stored);
+                    records = records.map(r => ({ ...r, isFull: r.isFull === undefined ? true : r.isFull }));
+                } else {
+                    records = [
+                        { id:'sample1', date:'2024-01-15', liters:42.5, pricePerLiter:7.62, totalCost:323.85, odometer:35000, note:'中石化', isFull:true },
+                        { id:'sample2', date:'2024-02-20', liters:38.0, pricePerLiter:7.58, totalCost:288.04, odometer:35580, note:'中石油', isFull:true },
+                        { id:'sample3', date:'2024-03-18', liters:45.2, pricePerLiter:7.70, totalCost:348.04, odometer:36150, note:'壳牌', isFull:false }
+                    ];
+                    localStorage.setItem('fuelRecords', JSON.stringify(records));
+                }
+                renderAll();
+            }
+            window.addEventListener('beforeunload', () => {
+                if (!isCloudMode) localStorage.setItem('fuelRecords', JSON.stringify(records));
+            });
+        }
+        init();
+    </script>
+</body>
+</html>
